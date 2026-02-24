@@ -45,7 +45,6 @@ model Equipment {
   iconUrl     String?         @map("icon_url")
 
   users       UserEquipment[]
-  exercises   Exercise[]      @relation("ExerciseEquipment")
 }
 
 model UserEquipment {
@@ -112,7 +111,7 @@ model WorkoutExercise {
   completed        Boolean        @default(false)
   notes            String?
 
-  healthFeedback   HealthFeedback?
+  healthFeedbacks  HealthFeedback[]
 
   @@index([workoutSessionId])
 }
@@ -122,6 +121,7 @@ model HealthFeedback {
   workoutSession     WorkoutSession  @relation(fields: [workoutSessionId], references: [id])
   workoutSessionId   String
   workoutExerciseId  String?
+  workoutExercise    WorkoutExercise? @relation(fields: [workoutExerciseId], references: [id])
   painLevel          Int?            @map("pain_level")
   painLocation       String?
   dizzinessLevel     Int?            @map("dizziness_level")

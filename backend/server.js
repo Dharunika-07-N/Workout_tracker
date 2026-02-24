@@ -14,20 +14,20 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString() });
 });
 
-// Basic recommendations placeholder
-app.get('/api/recommendations/daily', (req, res) => {
-  // In later modules this will call RecommendationService
-  const sample = {
-    user_id: req.query.user_id || 'demo',
-    date: req.query.date || new Date().toISOString().slice(0,10),
-    exercises: [
-      { id: 'ex-1', name: 'Bodyweight Squats', sets: 3, reps: 12 },
-      { id: 'ex-2', name: 'Push-ups', sets: 3, reps: 10 },
-      { id: 'ex-3', name: 'Plank', duration_minutes: 2 }
-    ]
-  };
-  res.json(sample);
-});
+// Mount modular routes
+const authRoutes = require('./src/routes/auth');
+const profileRoutes = require('./src/routes/profile');
+const equipmentRoutes = require('./src/routes/equipment');
+const recommendationsRoutes = require('./src/routes/recommendations');
+const authMiddleware = require('./src/middleware/auth');
+
+app.use('/api/auth', authRoutes);
+app.use('/api/equipment', equipmentRoutes);
+app.use('/api/recommendations', authMiddleware, recommendationsRoutes);
+app.use('/api/profile', authMiddleware, profileRoutes);
+const workoutsRoutes = require('./src/routes/workouts');
+app.use('/api/workouts', authMiddleware, workoutsRoutes);
+
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
