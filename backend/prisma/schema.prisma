@@ -155,3 +155,15 @@ model MLRecommendation {
   userAccepted       Boolean?
   createdAt          DateTime @default(now()) @map("created_at")
 }
+
+model Notification {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  metadata  Json?    
+  createdAt DateTime @default(now()) @map("created_at")
+}

@@ -28,6 +28,18 @@ app.use('/api/profile', authMiddleware, profileRoutes);
 const workoutsRoutes = require('./src/routes/workouts');
 app.use('/api/workouts', authMiddleware, workoutsRoutes);
 
+const calendarRoutes = require('./src/routes/calendar');
+const analyticsRoutes = require('./src/routes/analytics');
+const notificationsRoutes = require('./src/routes/notifications');
+const notificationScheduler = require('./src/services/notificationScheduler');
+
+app.use('/api/calendar', authMiddleware, calendarRoutes);
+app.use('/api/analytics', authMiddleware, analyticsRoutes);
+app.use('/api/notifications', authMiddleware, notificationsRoutes);
+
+// Start notification scheduler (runs in background)
+notificationScheduler.startScheduler();
+
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
