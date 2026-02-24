@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  isVerified   Boolean       @default(false) @map("is_verified")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  lastLogin    DateTime?     @map("last_login")
+
+  profile      UserProfile?
+  equipment    UserEquipment[]
+  sessions     WorkoutSession[]
+  goals        UserGoal[]
+  recommendations MLRecommendation[]
+}
+
+model UserProfile {
+  id                 String   @id @default(uuid())
+  user               User     @relation(fields: [userId], references: [id])
+  userId             String   @unique
+  heightCm           Float?   @map("height")
+  weightKg           Float?   @map("weight")
+  age                Int?
+  gender             String?  // male, female, other
+  targetWeightKg     Float?   @map("target_weight")
+  profilePictureUrl  String?  @map("profile_picture_url")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+}
+
+model Equipment {
+  id          String          @id @default(uuid())
+  name        String
+  category    String
+  description String?
+  iconUrl     String?         @map("icon_url")
+
+  users       UserEquipment[]
+  exercises   Exercise[]      @relation("ExerciseEquipment")
+}
+
+model UserEquipment {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  equipment   Equipment @relation(fields: [equipmentId], references: [id])
+  equipmentId String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([equipmentId])
+}
+
+model Exercise {
+  id               String   @id @default(uuid())
+  name             String
+  category         String
+  equipmentRequired String[] @map("equipment_required")
+  difficulty       String   @map("difficulty_level")
+  caloriesPerMin   Float?   @map("calories_per_minute")
+  description      String?
+  instructions     Json?
+  targetMuscles    String[] @map("target_muscles")
+
+  workoutExercises WorkoutExercise[]
+}
+
+model WorkoutSession {
+  id                   String           @id @default(uuid())
+  user                 User             @relation(fields: [userId], references: [id])
+  userId               String
+  date                 DateTime
+  status               String
+  totalDurationMinutes Int?             @map("total_duration_minutes")
+  totalCaloriesBurned  Float?           @map("total_calories_burned")
+  notes                String?
+  createdAt            DateTime         @default(now()) @map("created_at")
+  completedAt          DateTime?
+
+  exercises            WorkoutExercise[]
+  healthFeedback       HealthFeedback[]
+  recommendations      MLRecommendation[]
+
+  @@index([userId, date])
+}
+
+model WorkoutExercise {
+  id               String         @id @default(uuid())
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id])
+  workoutSessionId String
+  exercise         Exercise       @relation(fields: [exerciseId], references: [id])
+  exerciseId       String
+  orderIndex       Int?           @map("order_index")
+  sets             Int?
+  reps             Int?
+  weightKg         Float?         @map("weight_kg")
+  durationMinutes  Int?           @map("duration_minutes")
+  distanceKm       Float?         @map("distance_km")
+  speedKmh         Float?         @map("speed_kmh")
+  inclinePercent   Float?         @map("incline_percent")
+  resistanceLevel  Int?           @map("resistance_level")
+  caloriesBurned   Float?         @map("calories_burned")
+  completed        Boolean        @default(false)
+  notes            String?
+
+  healthFeedback   HealthFeedback?
+
+  @@index([workoutSessionId])
+}
+
+model HealthFeedback {
+  id                 String          @id @default(uuid())
+  workoutSession     WorkoutSession  @relation(fields: [workoutSessionId], references: [id])
+  workoutSessionId   String
+  workoutExerciseId  String?
+  painLevel          Int?            @map("pain_level")
+  painLocation       String?
+  dizzinessLevel     Int?            @map("dizziness_level")
+  stressLevel        Int?            @map("stress_level")
+  fatigueLevel       Int?            @map("fatigue_level")
+  notes              String?
+  createdAt          DateTime        @default(now()) @map("created_at")
+}
+
+model UserGoal {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  goalType    String   @map("goal_type")
+  targetValue Float?   @map("target_value")
+  currentValue Float?  @map("current_value")
+  targetDate  DateTime?
+  status      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+}
+
+model MLRecommendation {
+  id                 String   @id @default(uuid())
+  user               User     @relation(fields: [userId], references: [id])
+  userId             String
+  workoutSession     WorkoutSession? @relation(fields: [workoutSessionId], references: [id])
+  workoutSessionId   String?
+  recommendedExercises Json?   @map("recommended_exercises")
+  reasoning          String?  
+  userAccepted       Boolean?
+  createdAt          DateTime @default(now()) @map("created_at")
+}
