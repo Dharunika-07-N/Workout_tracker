@@ -12,6 +12,7 @@
     "prisma:seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.0.0",
     "@sendgrid/mail": "^8.1.6",
     "bcryptjs": "^2.4.3",

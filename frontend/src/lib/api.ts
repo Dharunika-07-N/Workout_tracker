@@ -189,7 +189,20 @@ export const api = {
 
     // ─── Recommendations ────────────────────────────────────────────────────────
     recommendations: {
-        daily: () => request<{ exercises: { id: string; name: string; sets: number; reps: number }[] }>('/recommendations/daily'),
+        daily: () =>
+            request<{
+                exercises: {
+                    name: string;
+                    type: string;
+                    sets: number;
+                    reps: number;
+                    duration_minutes: number;
+                    description: string;
+                    video_demo_prompt: string;
+                    calories_estimate: number;
+                }[],
+                reasoning: string;
+            }>('/recommendations/daily'),
     },
 
     // ─── Health ─────────────────────────────────────────────────────────────────
