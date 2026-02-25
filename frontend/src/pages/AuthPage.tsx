@@ -3,20 +3,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAppState } from '@/context/AppContext';
-import { Dumbbell, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Dumbbell, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 
 const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, signup } = useAppState();
+  const [submitting, setSubmitting] = useState(false);
+  const { login, signup, authError } = useAppState();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      login(email, password);
-    } else {
-      signup(email, password);
+    setSubmitting(true);
+    try {
+      if (isLogin) {
+        await login(email, password);
+      } else {
+        await signup(email, password);
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -50,16 +56,30 @@ const AuthPage = () => {
             <button
               key={label}
               onClick={() => setIsLogin(i === 0)}
-              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                (i === 0 ? isLogin : !isLogin)
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${(i === 0 ? isLogin : !isLogin)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'
-              }`}
+                }`}
             >
               {label}
             </button>
           ))}
         </div>
+
+        {/* Error Banner */}
+        <AnimatePresence>
+          {authError && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-2 mb-4 px-4 py-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm"
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Form */}
         <AnimatePresence mode="wait">
@@ -81,6 +101,7 @@ const AuthPage = () => {
                 onChange={e => setEmail(e.target.value)}
                 className="pl-11 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 required
+                disabled={submitting}
               />
             </div>
             <div className="relative">
@@ -92,15 +113,21 @@ const AuthPage = () => {
                 onChange={e => setPassword(e.target.value)}
                 className="pl-11 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
                 required
+                disabled={submitting}
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-primary"
+              disabled={submitting}
+              className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 glow-primary disabled:opacity-70"
             >
+              {submitting ? (
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              ) : (
+                <ArrowRight className="w-5 h-5 ml-2 order-last" />
+              )}
               {isLogin ? 'Sign In' : 'Create Account'}
-              <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </motion.form>
         </AnimatePresence>
