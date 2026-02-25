@@ -3,22 +3,13 @@ name: Prisma Migrate CI
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: workout_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres" --health-interval=5s --health-timeout=5s --health-retries=10
 
     steps:
       - name: Checkout
@@ -28,31 +19,30 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install backend dependencies
         working-directory: backend
         run: npm ci
 
-      - name: Wait for Postgres
-        run: |
-          for i in {1..30}; do
-            pg_isready -h localhost -p 5432 -U postgres && break || sleep 1;
-          done
-
-      - name: Set DATABASE_URL
-        run: echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/workout_db" >> $GITHUB_ENV
-
       - name: Generate Prisma client
         working-directory: backend
+        env:
+          DATABASE_URL: "file:./dev.db"
         run: npx prisma generate
 
-      - name: Run migrations
+      - name: Run Prisma migrations
         working-directory: backend
         env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: npx prisma migrate deploy --preview-feature
+          DATABASE_URL: "file:./dev.db"
+        run: npx prisma migrate deploy
 
-      - name: List DB tables (sanity)
+      - name: Verify DB tables (sanity check)
+        working-directory: backend
+        env:
+          DATABASE_URL: "file:./dev.db"
         run: |
-          apt-get update && apt-get install -y postgresql-client
-          PGPASSWORD=postgres psql -h localhost -U postgres -d workout_db -c "\dt"
+          npx prisma db execute --stdin <<'EOF'
+          SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
+          EOF
