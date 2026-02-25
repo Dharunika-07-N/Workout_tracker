@@ -1,17 +1,63 @@
 const prisma = require('../prismaClient');
 
-async function generateDailyRecommendation(userId, dateStr){
-  // Simple rule-based demo: pick 3 exercises from DB filtered by equipment
-  const profile = await prisma.userProfile.findUnique({ where: { userId } });
-  const equipments = await prisma.userEquipment.findMany({ where: { userId } });
-  const equipmentIds = equipments.map(e => e.equipmentId);
+// Default exercises to seed if DB is empty
+const DEFAULT_EXERCISES = [
+  { name: 'Treadmill Run', category: 'cardio', equipmentRequired: 'Treadmill', difficulty: 'medium', caloriesPerMin: 10, description: 'Steady-pace run on treadmill', instructions: 'Set treadmill to 8 km/h and run for 30 minutes', targetMuscles: JSON.stringify(['legs', 'core', 'cardiovascular']) },
+  { name: 'Dumbbell Curl', category: 'strength', equipmentRequired: 'Dumbbells', difficulty: 'easy', caloriesPerMin: 5, description: 'Bicep curls with dumbbells', instructions: '3 sets of 12 reps each arm', targetMuscles: JSON.stringify(['biceps']) },
+  { name: 'Bench Press', category: 'strength', equipmentRequired: 'Bench Press', difficulty: 'hard', caloriesPerMin: 7, description: 'Classic chest press on flat bench', instructions: '4 sets of 8 reps at 60% 1RM', targetMuscles: JSON.stringify(['chest', 'triceps', 'shoulders']) },
+  { name: 'Cycling Intervals', category: 'cardio', equipmentRequired: 'Exercise Bike', difficulty: 'medium', caloriesPerMin: 9, description: 'HIIT on stationary bike', instructions: '30s sprint, 30s recovery x 10', targetMuscles: JSON.stringify(['legs', 'cardiovascular']) },
+  { name: 'Rowing', category: 'cardio', equipmentRequired: 'Rowing Machine', difficulty: 'medium', caloriesPerMin: 8, description: 'Full-body rowing machine workout', instructions: 'Row for 20 minutes at steady pace', targetMuscles: JSON.stringify(['back', 'arms', 'core']) },
+];
 
-  // naive: pick any 3 exercises
-  const exercises = await prisma.exercise.findMany({ take: 10 });
-  const sample = exercises.slice(0,3).map((ex, i) => ({ id: ex.id, name: ex.name || 'Exercise', sets: 3, reps: 10 + i*2 }));
+async function seedExercisesIfEmpty() {
+  const count = await prisma.exercise.count();
+  if (count === 0) {
+    for (const ex of DEFAULT_EXERCISES) {
+      await prisma.exercise.create({ data: ex }).catch(() => { });
+    }
+  }
+}
+
+async function generateDailyRecommendation(userId, dateStr) {
+  await seedExercisesIfEmpty();
+
+  // Get user equipment preferences
+  const userEquipment = await prisma.userEquipment.findMany({
+    where: { userId },
+    include: { equipment: true }
+  });
+  const equipmentNames = userEquipment.map(ue => ue.equipment.name);
+
+  // Pick exercises matching user equipment (or all if none set)
+  let exercises = await prisma.exercise.findMany({ take: 20 });
+  if (equipmentNames.length > 0) {
+    const filtered = exercises.filter(ex => equipmentNames.includes(ex.equipmentRequired));
+    if (filtered.length > 0) exercises = filtered;
+  }
+
+  const sample = exercises.slice(0, 3).map((ex, i) => ({
+    id: ex.id,
+    name: ex.name,
+    sets: 3,
+    reps: 10 + i * 2,
+    duration_minutes: ex.category === 'cardio' ? 20 : null,
+  }));
+
   const recommendation = { user_id: userId, date: dateStr, exercises: sample };
-  await prisma.mLRecommendation.create({ data: { userId, recommendedExercises: recommendation, reasoning: 'Rule-based sample', userAccepted: null } }).catch(()=>{});
+
+  // Store recommendation (best-effort — ignore duplicate errors)
+  await prisma.mLRecommendation.create({
+    data: {
+      userId,
+      recommendedExercises: JSON.stringify(sample),
+      reasoning: 'Rule-based: matched user equipment',
+      userAccepted: null,
+    }
+  }).catch(() => { });
+
   return recommendation;
 }
+
+module.exports = { generateDailyRecommendation };
 
 module.exports = { generateDailyRecommendation };
