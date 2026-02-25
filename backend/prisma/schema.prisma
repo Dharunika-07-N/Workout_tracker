@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -21,6 +21,8 @@ model User {
   sessions     WorkoutSession[]
   goals        UserGoal[]
   recommendations MLRecommendation[]
+  notifications Notification[]
+  passwordResets PasswordReset[]
 }
 
 model UserProfile {
@@ -63,12 +65,12 @@ model Exercise {
   id               String   @id @default(uuid())
   name             String
   category         String
-  equipmentRequired String[] @map("equipment_required")
+  equipmentRequired String   @map("equipment_required")
   difficulty       String   @map("difficulty_level")
   caloriesPerMin   Float?   @map("calories_per_minute")
   description      String?
-  instructions     Json?
-  targetMuscles    String[] @map("target_muscles")
+  instructions     String?
+  targetMuscles     String   @map("target_muscles")
 
   workoutExercises WorkoutExercise[]
 }
@@ -150,7 +152,7 @@ model MLRecommendation {
   userId             String
   workoutSession     WorkoutSession? @relation(fields: [workoutSessionId], references: [id])
   workoutSessionId   String?
-  recommendedExercises Json?   @map("recommended_exercises")
+  recommendedExercises String?   @map("recommended_exercises")
   reasoning          String?  
   userAccepted       Boolean?
   createdAt          DateTime @default(now()) @map("created_at")
@@ -164,7 +166,7 @@ model Notification {
   title     String
   message   String
   isRead    Boolean  @default(false) @map("is_read")
-  metadata  Json?    
+  metadata  String?    
   createdAt DateTime @default(now()) @map("created_at")
 }
 
