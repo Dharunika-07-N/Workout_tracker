@@ -71,7 +71,11 @@ function sessionToEntry(session: any): WorkoutEntry {
         calories: ex.caloriesBurned ?? 0,
       },
     })),
-    symptoms: [],
+    symptoms: (session.healthFeedback || []).map((hf: any) => ({
+      type: (hf.painLevel ? 'pain' : hf.dizzinessLevel ? 'dizziness' : hf.stressLevel ? 'stress' : 'stress') as HealthSymptom['type'],
+      severity: hf.painLevel || hf.dizzinessLevel || hf.stressLevel || 1,
+      location: hf.painLocation || undefined
+    })),
   };
 }
 

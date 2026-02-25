@@ -2,11 +2,12 @@ const prisma = require('../prismaClient');
 
 // Default exercises to seed if DB is empty
 const DEFAULT_EXERCISES = [
-  { name: 'Treadmill Run', category: 'cardio', equipmentRequired: 'Treadmill', difficulty: 'medium', caloriesPerMin: 10, description: 'Steady-pace run on treadmill', instructions: 'Set treadmill to 8 km/h and run for 30 minutes', targetMuscles: JSON.stringify(['legs', 'core', 'cardiovascular']) },
-  { name: 'Dumbbell Curl', category: 'strength', equipmentRequired: 'Dumbbells', difficulty: 'easy', caloriesPerMin: 5, description: 'Bicep curls with dumbbells', instructions: '3 sets of 12 reps each arm', targetMuscles: JSON.stringify(['biceps']) },
+  { name: 'Treadmill', category: 'cardio', equipmentRequired: 'Treadmill', difficulty: 'medium', caloriesPerMin: 10, description: 'Steady-pace run on treadmill', instructions: 'Set treadmill to 8 km/h and run for 30 minutes', targetMuscles: JSON.stringify(['legs', 'core', 'cardiovascular']) },
+  { name: 'Dumbbells', category: 'strength', equipmentRequired: 'Dumbbells', difficulty: 'easy', caloriesPerMin: 5, description: 'Bicep curls with dumbbells', instructions: '3 sets of 12 reps each arm', targetMuscles: JSON.stringify(['biceps']) },
   { name: 'Bench Press', category: 'strength', equipmentRequired: 'Bench Press', difficulty: 'hard', caloriesPerMin: 7, description: 'Classic chest press on flat bench', instructions: '4 sets of 8 reps at 60% 1RM', targetMuscles: JSON.stringify(['chest', 'triceps', 'shoulders']) },
-  { name: 'Cycling Intervals', category: 'cardio', equipmentRequired: 'Exercise Bike', difficulty: 'medium', caloriesPerMin: 9, description: 'HIIT on stationary bike', instructions: '30s sprint, 30s recovery x 10', targetMuscles: JSON.stringify(['legs', 'cardiovascular']) },
-  { name: 'Rowing', category: 'cardio', equipmentRequired: 'Rowing Machine', difficulty: 'medium', caloriesPerMin: 8, description: 'Full-body rowing machine workout', instructions: 'Row for 20 minutes at steady pace', targetMuscles: JSON.stringify(['back', 'arms', 'core']) },
+  { name: 'Cycling', category: 'cardio', equipmentRequired: 'Cycling', difficulty: 'medium', caloriesPerMin: 9, description: 'HIIT on stationary bike', instructions: '30s sprint, 30s recovery x 10', targetMuscles: JSON.stringify(['legs', 'cardiovascular']) },
+  { name: 'Rowing Machine', category: 'cardio', equipmentRequired: 'Rowing Machine', difficulty: 'medium', caloriesPerMin: 8, description: 'Full-body rowing machine workout', instructions: 'Row for 20 minutes at steady pace', targetMuscles: JSON.stringify(['back', 'arms', 'core']) },
+  { name: 'Elliptical', category: 'cardio', equipmentRequired: 'Elliptical', difficulty: 'easy', caloriesPerMin: 6, description: 'Low-impact elliptical session', instructions: 'Maintain 60-70 RPM for 30 minutes', targetMuscles: JSON.stringify(['legs', 'arms', 'cardiovascular']) },
 ];
 
 async function seedExercisesIfEmpty() {
@@ -57,7 +58,5 @@ async function generateDailyRecommendation(userId, dateStr) {
 
   return recommendation;
 }
-
-module.exports = { generateDailyRecommendation };
 
 module.exports = { generateDailyRecommendation };

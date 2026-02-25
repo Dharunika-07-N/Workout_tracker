@@ -5,24 +5,24 @@ const prisma = require('../prismaClient');
 // GET /api/calendar?month=2026-02
 router.get('/', async (req, res) => {
   const { month } = req.query; // format YYYY-MM or date range
-  try{
+  try {
     let start, end;
-    if(month){
+    if (month) {
       const parts = month.split('-');
       const y = parseInt(parts[0]);
       const m = parseInt(parts[1]) - 1;
       start = new Date(Date.UTC(y, m, 1));
-      end = new Date(Date.UTC(y, m+1, 1));
-    }else{
+      end = new Date(Date.UTC(y, m + 1, 1));
+    } else {
       // default to current month
       const now = new Date();
       start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = new Date(now.getFullYear(), now.getMonth()+1, 1);
+      end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
     }
-    const sessions = await prisma.workoutSession.findMany({ where: { date: { gte: start, lt: end } }, select: { date: true, status: true, totalDurationMinutes: true, totalCaloriesBurned: true, exercises: { select: { id: true } } } });
-    const result = sessions.map(s => ({ date: s.date.toISOString().slice(0,10), status: s.status, total_duration: s.totalDurationMinutes, calories: s.totalCaloriesBurned, exercises_count: s.exercises.length }));
+    const sessions = await prisma.workoutSession.findMany({ where: { userId: req.user.id, date: { gte: start, lt: end } }, select: { date: true, status: true, totalDurationMinutes: true, totalCaloriesBurned: true, exercises: { select: { id: true } } } });
+    const result = sessions.map(s => ({ date: s.date.toISOString().slice(0, 10), status: s.status, total_duration: s.totalDurationMinutes, calories: s.totalCaloriesBurned, exercises_count: s.exercises.length }));
     res.json(result);
-  }catch(err){
+  } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
@@ -30,11 +30,11 @@ router.get('/', async (req, res) => {
 
 router.get('/:date', async (req, res) => {
   const date = req.params.date; // YYYY-MM-DD
-  try{
-    const session = await prisma.workoutSession.findFirst({ where: { date: new Date(date) }, include: { exercises: true, healthFeedback: true } });
-    if(!session) return res.status(404).json({ message: 'No workout on this date' });
+  try {
+    const session = await prisma.workoutSession.findFirst({ where: { userId: req.user.id, date: new Date(date) }, include: { exercises: { include: { exercise: true } }, healthFeedback: true } });
+    if (!session) return res.status(404).json({ message: 'No workout on this date' });
     res.json(session);
-  }catch(err){
+  } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
   }
