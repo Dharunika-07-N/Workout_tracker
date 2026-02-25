@@ -9,6 +9,8 @@ import {
   ArrowLeft, Plus, Check, Trash2,
   AlertTriangle, Brain, Zap
 } from 'lucide-react';
+import api from '@/lib/api';
+import { toast } from 'sonner';
 
 const EXERCISE_TEMPLATES: Record<string, { label: string; fields: { key: string; label: string; unit: string }[] }> = {
   Treadmill: {
@@ -111,15 +113,38 @@ const WorkoutPage = () => {
     setSymptoms(prev => prev.map(s => s.type === type ? { ...s, severity } : s));
   };
 
-  const handleComplete = useCallback(() => {
+  const handleComplete = useCallback(async () => {
     const today = new Date().toISOString().split('T')[0];
-    addWorkout({
+    const workoutData = {
       id: `workout-${Date.now()}`,
       date: today,
       exercises: exercises.map(({ type, data }) => ({ type, data })),
       symptoms,
       completed: true,
-    });
+    };
+
+    try {
+      // The backend returns achievements in the response
+      const response: any = await api.workouts.log({
+        date: workoutData.date,
+        exercises: workoutData.exercises,
+        symptoms: workoutData.symptoms,
+      });
+
+      if (response.achievements && response.achievements.length > 0) {
+        response.achievements.forEach((ach: any) => {
+          toast.success(ach.title, {
+            description: ach.message,
+            icon: <Zap className="w-5 h-5 text-yellow-500" />,
+            duration: 5000,
+          });
+        });
+      }
+    } catch (err) {
+      console.error('Failed to log achievement:', err);
+    }
+
+    addWorkout(workoutData);
     setCompleted(true);
     confetti({
       particleCount: 150,
@@ -276,11 +301,10 @@ const WorkoutPage = () => {
               <button
                 key={s.type}
                 onClick={() => toggleSymptom(s.type)}
-                className={`flex-1 py-3 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${
-                  active
-                    ? 'bg-warning/20 text-warning border border-warning/30'
-                    : 'bg-secondary text-muted-foreground'
-                }`}
+                className={`flex-1 py-3 rounded-xl text-xs font-medium flex flex-col items-center gap-1 transition-all ${active
+                  ? 'bg-warning/20 text-warning border border-warning/30'
+                  : 'bg-secondary text-muted-foreground'
+                  }`}
               >
                 {s.icon}
                 {s.label}

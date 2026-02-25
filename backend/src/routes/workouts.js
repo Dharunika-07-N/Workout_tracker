@@ -151,11 +151,30 @@ router.post('/', async (req, res) => {
       }).catch(() => { });
     }
 
+    // --- Achievement Check ---
+    const workoutCount = await prisma.workoutSession.count({ where: { userId, status: 'completed' } });
+    const achievements = [];
+    if (workoutCount === 1) achievements.push({ type: 'badge', title: 'First Steps', message: 'You completed your first workout!' });
+    if (workoutCount === 5) achievements.push({ type: 'badge', title: 'Getting Consistent', message: '5 workouts completed. Keep it up!' });
+    if (totalCalories > 500) achievements.push({ type: 'badge', title: 'Calorie Crusher', message: 'Burned over 500 calories in one session!' });
+
+    for (const ach of achievements) {
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: ach.type,
+          title: ach.title,
+          message: ach.message,
+          metadata: JSON.stringify({ sessionId: session.id })
+        }
+      }).catch(() => { });
+    }
+
     const full = await prisma.workoutSession.findUnique({
       where: { id: session.id },
       include: { exercises: { include: { exercise: true } }, healthFeedback: true },
     });
-    res.json(full);
+    res.json({ ...full, achievements });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

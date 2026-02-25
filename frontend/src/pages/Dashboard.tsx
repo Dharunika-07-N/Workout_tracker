@@ -4,15 +4,18 @@ import { useAppState, WorkoutEntry } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Dumbbell, Plus, TrendingDown, Flame, Calendar as CalendarIcon,
-  ChevronLeft, ChevronRight, LogOut, Sparkles, X, Activity
+  ChevronLeft, ChevronRight, Sparkles, X, Activity,
+  Trophy, HeartPulse, Scale, Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const Dashboard = () => {
-  const { profile, workouts, logout } = useAppState();
+  const { profile, workouts } = useAppState();
   const navigate = useNavigate();
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
   const [calYear, setCalYear] = useState(new Date().getFullYear());
@@ -48,203 +51,287 @@ const Dashboard = () => {
   };
 
   const selectedWorkout = selectedDay ? workoutMap.get(selectedDay) : null;
-
-  const totalWorkouts = workouts.length;
+  const totalWorkouts = workouts.filter(w => w.completed).length;
   const totalCalories = workouts.reduce((sum, w) =>
     sum + w.exercises.reduce((eSum, e) => eSum + (Number(e.data.calories) || 0), 0), 0
   );
+
   const weightDiff = profile ? profile.weight - profile.targetWeight : 0;
+  const progressPercent = profile
+    ? Math.max(0, Math.min(100, (1 - Math.abs(weightDiff) / 10) * 100))
+    : 0;
 
   const today = new Date().toISOString().split('T')[0];
   const todayWorkedOut = workoutMap.has(today);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      {/* Header */}
-      <div className="px-4 pt-6 pb-4 flex items-center justify-between">
+    <div className="container max-w-5xl py-8 px-4 space-y-8 pb-32">
+      {/* Welcome & Quick Recommendation */}
+      <section className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-muted-foreground">Welcome back</p>
-          <h1 className="text-2xl font-display font-bold text-foreground">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Your Fitness Journey</h1>
+          <p className="text-muted-foreground mt-1">Keep pushing toward your {profile?.targetWeight}kg goal!</p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/suggestions')}
-            className="text-primary hover:bg-primary/10"
-          >
-            <Sparkles className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={logout} className="text-muted-foreground hover:text-foreground">
-            <LogOut className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
+        <Button
+          onClick={() => navigate('/suggestions')}
+          className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 backdrop-blur-sm"
+        >
+          <Sparkles className="w-4 h-4 mr-2" />
+          Get AI Suggestions
+        </Button>
+      </section>
 
-      {/* Stats Cards */}
-      <div className="px-4 grid grid-cols-3 gap-3 mb-6">
-        {[
-          { label: 'Workouts', value: totalWorkouts, icon: <Activity className="w-4 h-4" /> },
-          { label: 'Calories', value: `${(totalCalories / 1000).toFixed(1)}k`, icon: <Flame className="w-4 h-4" /> },
-          { label: 'To Goal', value: `${weightDiff > 0 ? '-' : '+'}${Math.abs(weightDiff)}kg`, icon: <TrendingDown className="w-4 h-4" /> },
-        ].map((stat, i) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card rounded-xl p-4"
-          >
-            <div className="flex items-center gap-1.5 text-primary mb-2">
-              {stat.icon}
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
-            </div>
-            <p className="text-xl font-display font-bold text-foreground">{stat.value}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Calendar */}
-      <div className="px-4 mb-6">
-        <div className="glass-card rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => {
-              if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
-              else setCalMonth(m => m - 1);
-            }}>
-              <ChevronLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-            </button>
-            <h3 className="font-display font-semibold text-foreground">
-              {MONTHS[calMonth]} {calYear}
-            </h3>
-            <button onClick={() => {
-              if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
-              else setCalMonth(m => m + 1);
-            }}>
-              <ChevronRight className="w-5 h-5 text-muted-foreground hover:text-foreground" />
-            </button>
+      {/* Stats Summary Grid */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="glass-card p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+            <Activity className="w-6 h-6" />
           </div>
-
-          {/* Day headers */}
-          <div className="grid grid-cols-7 gap-1 mb-1">
-            {DAYS.map(d => (
-              <div key={d} className="text-center text-xs text-muted-foreground py-1">{d}</div>
-            ))}
+          <div>
+            <p className="text-sm text-muted-foreground">Workouts</p>
+            <p className="text-2xl font-bold">{totalWorkouts}</p>
           </div>
+        </motion.div>
 
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map((day, i) => {
-              if (day === null) return <div key={`pad-${i}`} />;
-              const level = getHeatmapLevel(day);
-              const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const isToday = dateStr === today;
-              const isSunday = level === -1;
-
-              return (
-                <button
-                  key={i}
-                  onClick={() => !isSunday && setSelectedDay(dateStr)}
-                  className={`aspect-square rounded-md text-xs font-medium flex items-center justify-center transition-all duration-200
-                    ${isSunday ? 'bg-secondary/50 text-muted-foreground/40 cursor-default' : ''}
-                    ${!isSunday && level === 0 ? 'heatmap-0 text-muted-foreground hover:ring-1 hover:ring-primary/30' : ''}
-                    ${level === 1 ? 'heatmap-1 text-foreground hover:ring-1 hover:ring-primary/50' : ''}
-                    ${level === 2 ? 'heatmap-2 text-foreground hover:ring-1 hover:ring-primary/50' : ''}
-                    ${level === 3 ? 'heatmap-3 text-primary-foreground hover:ring-1 hover:ring-primary/50' : ''}
-                    ${level === 4 ? 'heatmap-4 text-primary-foreground hover:ring-1 hover:ring-primary/50' : ''}
-                    ${isToday ? 'ring-2 ring-primary' : ''}
-                  `}
-                >
-                  {isSunday ? 'R' : day}
-                </button>
-              );
-            })}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="glass-card p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-500">
+            <Flame className="w-6 h-6" />
           </div>
-
-          {/* Legend */}
-          <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
-            <span>Less</span>
-            {[0, 1, 2, 3, 4].map(l => (
-              <div key={l} className={`w-3 h-3 rounded-sm heatmap-${l}`} />
-            ))}
-            <span>More</span>
+          <div>
+            <p className="text-sm text-muted-foreground">Calories</p>
+            <p className="text-2xl font-bold">{(totalCalories / 1000).toFixed(1)}k</p>
           </div>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Selected Day Detail */}
-      <AnimatePresence>
-        {selectedDay && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="px-4 mb-6"
-          >
-            <div className="glass-card rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-display font-semibold text-foreground">{selectedDay}</h4>
-                <button onClick={() => setSelectedDay(null)}>
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          className="glass-card p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+            <Scale className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Weight</p>
+            <p className="text-2xl font-bold">{profile?.weight}kg</p>
+          </div>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+          className="glass-card p-5 rounded-2xl flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+            <Trophy className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Badges</p>
+            <p className="text-2xl font-bold">{totalWorkouts >= 1 ? 1 : 0}</p>
+          </div>
+        </motion.div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main Column */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Calendar Heatmap Section */}
+          <section className="glass-card rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <CalendarIcon className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-bold">Training Activity</h3>
               </div>
-              {selectedWorkout ? (
-                <div className="space-y-3">
-                  {selectedWorkout.exercises.map((ex, i) => (
-                    <div key={i} className="bg-secondary rounded-xl p-3">
-                      <p className="text-sm font-semibold text-foreground mb-1">{ex.type}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(ex.data).map(([k, v]) => (
-                          <span key={k} className="text-xs bg-muted rounded-full px-2 py-0.5 text-muted-foreground">
-                            {k}: {v}
-                          </span>
-                        ))}
-                      </div>
+              <div className="flex items-center gap-4">
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
+                    else setCalMonth(m => m - 1);
+                  }}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
+                    else setCalMonth(m => m + 1);
+                  }}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                <h4 className="text-sm font-semibold min-w-[100px] text-right">
+                  {MONTHS[calMonth]} {calYear}
+                </h4>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-2 mb-2 text-center text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+              {DAYS.map(d => <div key={d}>{d}</div>)}
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {calendarDays.map((day, i) => {
+                if (day === null) return <div key={`pad-${i}`} className="aspect-square" />;
+                const level = getHeatmapLevel(day);
+                const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = dateStr === today;
+                const isSunday = level === -1;
+
+                return (
+                  <button
+                    key={i}
+                    onClick={() => !isSunday && setSelectedDay(dateStr)}
+                    className={`aspect-square rounded-lg flex items-center justify-center transition-all relative group
+                      ${isSunday ? 'bg-muted/30 text-muted-foreground/30 cursor-default' : 'cursor-pointer hover:scale-110'}
+                      ${!isSunday && level === 0 ? 'bg-secondary/50 text-muted-foreground' : ''}
+                      ${level === 1 ? 'bg-primary/20 text-foreground border border-primary/30' : ''}
+                      ${level === 2 ? 'bg-primary/40 text-foreground border border-primary/40' : ''}
+                      ${level === 3 ? 'bg-primary/60 text-primary-foreground font-bold' : ''}
+                      ${level === 4 ? 'bg-primary text-primary-foreground font-bold shadow-lg' : ''}
+                      ${isToday ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background' : ''}
+                    `}
+                  >
+                    <span className="text-xs">{isSunday ? 'R' : day}</span>
+                    {level > 0 && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 mt-6 text-[10px] text-muted-foreground">
+              <span>Rest</span>
+              <div className="w-3 h-3 rounded-sm bg-muted/30" />
+              <span>Activity</span>
+              <div className="w-3 h-3 rounded-sm bg-primary/20" />
+              <div className="w-3 h-3 rounded-sm bg-primary/60" />
+              <div className="w-3 h-3 rounded-sm bg-primary" />
+            </div>
+          </section>
+
+          {/* Detailed View Modal (Animated) */}
+          <AnimatePresence>
+            {selectedDay && (
+              <motion.section
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="glass-card rounded-2xl p-6 border-primary/20 bg-primary/5">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold flex items-center gap-2">
+                      <CalendarIcon className="w-4 h-4" />
+                      Workout Details: {selectedDay}
+                    </h3>
+                    <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {selectedWorkout ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {selectedWorkout.exercises.map((ex, i) => (
+                        <div key={i} className="bg-card border rounded-xl p-4 shadow-sm">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Dumbbell className="w-4 h-4 text-primary" />
+                            <span className="font-bold">{ex.type}</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {Object.entries(ex.data).map(([k, v]) => (
+                              v !== 0 && v !== '' && (
+                                <Badge key={k} variant="secondary" className="capitalize">
+                                  {k}: {v}
+                                </Badge>
+                              )
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                  {profile && (
-                    <div className="bg-secondary rounded-xl p-3">
-                      <p className="text-xs text-muted-foreground">Goal Progress</p>
-                      <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${Math.min(100, (1 - Math.abs(profile.weight - profile.targetWeight) / profile.weight) * 100)}%` }}
-                        />
-                      </div>
+                  ) : (
+                    <div className="p-8 text-center text-muted-foreground bg-background/50 rounded-xl border-dashed border-2">
+                      No training sessions found for this date.
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No workout logged for this day.</p>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        </div>
 
-      {/* FAB */}
-      <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50">
+        {/* Sidebar Column */}
+        <div className="space-y-8">
+          {/* Goal Progress Card */}
+          <section className="glass-card rounded-2xl p-6 space-y-4 border-l-4 border-primary">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-bold">Goal Progress</h3>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground font-medium">To Target</span>
+                <span className="font-bold text-primary">{Math.abs(weightDiff)} kg left</span>
+              </div>
+              <Progress value={progressPercent} className="h-3" />
+              <p className="text-[10px] text-muted-foreground text-center">
+                Initial: {profile?.weight}kg → Target: {profile?.targetWeight}kg
+              </p>
+            </div>
+
+            <div className="pt-4 border-t flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                <HeartPulse className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground leading-tight">Current Health Index</p>
+                <p className="font-bold text-sm">Optimal Recovery</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Quick Stats Grid */}
+          <section className="grid grid-cols-2 gap-4">
+            <div className="bg-card border rounded-2xl p-4 text-center">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">Streak</p>
+              <div className="text-2xl font-display font-black text-primary">3 Days</div>
+            </div>
+            <div className="bg-card border rounded-2xl p-4 text-center">
+              <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1 tracking-widest">BMI</p>
+              <div className="text-2xl font-display font-black text-foreground">
+                {profile ? (profile.weight / Math.pow(profile.height / 100, 2)).toFixed(1) : '--'}
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      {/* Persistent FAB */}
+      <motion.div
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        className="fixed bottom-8 left-0 right-0 flex justify-center pointer-events-none"
+      >
         <Button
           onClick={() => navigate('/workout')}
-          className={`h-14 px-8 rounded-full font-semibold text-base shadow-2xl ${
-            todayWorkedOut
-              ? 'bg-secondary text-muted-foreground'
-              : 'bg-primary text-primary-foreground glow-primary animate-pulse-glow'
-          }`}
+          className={`h-16 px-10 rounded-full font-bold text-lg shadow-2xl transition-all hover:scale-105 pointer-events-auto group ${todayWorkedOut
+              ? 'bg-secondary text-muted-foreground border border-border'
+              : 'bg-primary text-primary-foreground bg-glow transition-all duration-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+            }`}
         >
           {todayWorkedOut ? (
-            <>
-              <CalendarIcon className="w-5 h-5 mr-2" />
-              Completed Today
-            </>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-500">
+                <Plus className="w-5 h-5 rotate-45" />
+              </div>
+              <span>Session Logged</span>
+            </div>
           ) : (
-            <>
-              <Plus className="w-5 h-5 mr-2" />
-              Log Workout
-            </>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform" />
+              </div>
+              <span>Log New Session</span>
+            </div>
           )}
         </Button>
-      </div>
+      </motion.div>
     </div>
   );
 };

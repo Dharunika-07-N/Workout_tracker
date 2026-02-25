@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import WorkoutPage from "./pages/WorkoutPage";
 import SuggestionsPage from "./pages/SuggestionsPage";
 import NotFound from "./pages/NotFound";
+import Navbar from "./components/Navbar";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -33,12 +35,18 @@ const AppRoutes = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/workout" element={<WorkoutPage />} />
-      <Route path="/suggestions" element={<SuggestionsPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <div className="min-h-screen flex flex-col">
+      <Navbar />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/workout" element={<WorkoutPage />} />
+          <Route path="/suggestions" element={<SuggestionsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+    </div>
   );
 };
 
