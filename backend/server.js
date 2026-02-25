@@ -37,9 +37,12 @@ app.use('/api/calendar', authMiddleware, calendarRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
 app.use('/api/notifications', authMiddleware, notificationsRoutes);
 
-// Start notification scheduler (runs in background)
-notificationScheduler.startScheduler();
+// Export app for testing; start server & scheduler when run directly
+if(require.main === module){
+  // Start notification scheduler (runs in background)
+  notificationScheduler.startScheduler();
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
+}
 
-
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`Backend listening on http://localhost:${PORT}`));
+module.exports = app;
