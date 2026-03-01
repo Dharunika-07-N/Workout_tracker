@@ -171,11 +171,14 @@ const Dashboard = () => {
                 const isToday = dateStr === today;
                 const isSunday = level === -1;
 
+                const workout = workoutMap.get(dateStr);
+                const exCount = workout?.exercises.length ?? 0;
+
                 return (
                   <button
                     key={i}
-                    onClick={() => !isSunday && setSelectedDay(dateStr)}
-                    className={`aspect-square rounded-lg flex items-center justify-center transition-all relative group
+                    onClick={() => !isSunday && setSelectedDay(dateStr === selectedDay ? null : dateStr)}
+                    className={`aspect-square rounded-lg flex flex-col items-center justify-center transition-all relative group
                       ${isSunday ? 'bg-muted/30 text-muted-foreground/30 cursor-default' : 'cursor-pointer hover:scale-110'}
                       ${!isSunday && level === 0 ? 'bg-secondary/50 text-muted-foreground' : ''}
                       ${level === 1 ? 'bg-primary/20 text-foreground border border-primary/30' : ''}
@@ -183,9 +186,13 @@ const Dashboard = () => {
                       ${level === 3 ? 'bg-primary/60 text-primary-foreground font-bold' : ''}
                       ${level === 4 ? 'bg-primary text-primary-foreground font-bold shadow-lg' : ''}
                       ${isToday ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background' : ''}
+                      ${selectedDay === dateStr ? 'ring-2 ring-primary ring-offset-1 ring-offset-background scale-110' : ''}
                     `}
                   >
                     <span className="text-xs">{isSunday ? 'R' : day}</span>
+                    {exCount > 0 && (
+                      <span className="text-[8px] font-bold mt-0.5 opacity-80">{exCount}ex</span>
+                    )}
                     {level > 0 && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary animate-pulse" />
                     )}
@@ -213,39 +220,61 @@ const Dashboard = () => {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="glass-card rounded-2xl p-6 border-primary/20 bg-primary/5">
+                <div className="glass-card rounded-2xl p-6 border-l-4 border-primary bg-primary/5">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" />
-                      Workout Details: {selectedDay}
-                    </h3>
+                    <div>
+                      <h3 className="text-lg font-bold flex items-center gap-2">
+                        <CalendarIcon className="w-4 h-4 text-primary" />
+                        {selectedDay}
+                      </h3>
+                      {selectedWorkout && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          {selectedWorkout.exercises.length} exercise{selectedWorkout.exercises.length !== 1 ? 's' : ''} completed
+                        </p>
+                      )}
+                    </div>
                     <Button variant="ghost" size="icon" onClick={() => setSelectedDay(null)}>
                       <X className="w-4 h-4" />
                     </Button>
                   </div>
 
                   {selectedWorkout ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {selectedWorkout.exercises.map((ex, i) => (
-                        <div key={i} className="bg-card border rounded-xl p-4 shadow-sm">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Dumbbell className="w-4 h-4 text-primary" />
-                            <span className="font-bold">{ex.type}</span>
+                    <>
+                      {/* Exercise name pills */}
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {selectedWorkout.exercises.map((ex, i) => (
+                          <span key={i} className="inline-flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full px-3 py-1 text-xs font-semibold">
+                            <Dumbbell className="w-3 h-3" />
+                            {ex.type}
+                          </span>
+                        ))}
+                      </div>
+                      {/* Detailed exercise cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {selectedWorkout.exercises.map((ex, i) => (
+                          <div key={i} className="bg-card border border-border rounded-xl p-4 shadow-sm">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Dumbbell className="w-4 h-4 text-primary" />
+                              </div>
+                              <span className="font-bold text-sm">{ex.type}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 text-xs">
+                              {Object.entries(ex.data).map(([k, v]) => (
+                                v !== 0 && v !== '' && (
+                                  <Badge key={k} variant="secondary" className="capitalize text-[10px]">
+                                    {k}: {v}
+                                  </Badge>
+                                )
+                              ))}
+                            </div>
                           </div>
-                          <div className="flex flex-wrap gap-2 text-xs">
-                            {Object.entries(ex.data).map(([k, v]) => (
-                              v !== 0 && v !== '' && (
-                                <Badge key={k} variant="secondary" className="capitalize">
-                                  {k}: {v}
-                                </Badge>
-                              )
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    </>
                   ) : (
                     <div className="p-8 text-center text-muted-foreground bg-background/50 rounded-xl border-dashed border-2">
+                      <Dumbbell className="w-8 h-8 mx-auto mb-2 opacity-30" />
                       No training sessions found for this date.
                     </div>
                   )}
@@ -311,8 +340,8 @@ const Dashboard = () => {
         <Button
           onClick={() => navigate('/workout')}
           className={`h-16 px-10 rounded-full font-bold text-lg shadow-2xl transition-all hover:scale-105 pointer-events-auto group ${todayWorkedOut
-              ? 'bg-secondary text-muted-foreground border border-border'
-              : 'bg-primary text-primary-foreground bg-glow transition-all duration-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]'
+            ? 'bg-secondary text-muted-foreground border border-border'
+            : 'bg-primary text-primary-foreground bg-glow transition-all duration-500 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]'
             }`}
         >
           {todayWorkedOut ? (
